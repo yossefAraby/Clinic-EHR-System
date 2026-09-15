@@ -1,6 +1,8 @@
 # Clinic EHR System — Lightning
 
-A static JAMstack Electronic Health Record (EHR) system for multi-section clinics, built with **Vite + Alpine.js + Bootstrap 5.3** and powered by **Supabase** (database & auth) and **Cloudinary** (image uploads). Deployed to **Cloudflare Pages**.
+A static JAMstack Electronic Health Record (EHR) system for multi-section clinics, rebuilt from [BelalAhmed2214/health](https://github.com/BelalAhmed2214/health) as a modern SPA.
+
+Originally a Laravel + Blade application, this version ports the full UI pixel-perfectly to **Vite + Alpine.js + Bootstrap 5.3** with **Supabase** (database & auth) and **Cloudinary** (image uploads), deployed to **Cloudflare Pages**.
 
 ## Features
 
