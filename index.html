@@ -15,8 +15,8 @@
 
     <div x-show="!loading" x-cloak>
 
-        <!-- NAVBAR -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4" x-show="isLoggedIn">
+        <!-- NAVBAR (desktop) -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm" x-show="isLoggedIn">
             <div class="container">
                 <span class="navbar-brand" @click="navigate('dashboard')" style="cursor:pointer">
                     <i class="bi bi-heart-pulse-fill me-2"></i><span x-text="t('HealthCare Clinic')"></span>
@@ -1071,6 +1071,36 @@
             </div>
         </div>
     </div>
+
+    <!-- MOBILE BOTTOM BAR -->
+    <nav class="mobile-bottom-bar d-lg-none" x-show="isLoggedIn" x-cloak>
+        <div class="d-flex justify-content-around align-items-center h-100">
+            <button class="bottom-bar-item" :class="{ 'active': currentPage === 'dashboard' }" @click="navigate('dashboard')">
+                <i class="bi bi-speedometer2"></i>
+                <small x-text="t('Dashboard')"></small>
+            </button>
+            <button class="bottom-bar-item" :class="{ 'active': currentPage === 'patients' }" @click="navigate('patients')">
+                <i class="bi bi-people"></i>
+                <small x-text="t('Patients')"></small>
+            </button>
+            <button class="bottom-bar-item" :class="{ 'active': currentPage === 'patient-form' }" @click="openPatientForm()">
+                <i class="bi bi-plus-circle-fill"></i>
+                <small x-text="t('Add')"></small>
+            </button>
+            <button class="bottom-bar-item" x-show="isSuperAdmin" :class="{ 'active': currentPage === 'prices' }" @click="navigate('prices')">
+                <i class="bi bi-currency-dollar"></i>
+                <small x-text="t('Prices')"></small>
+            </button>
+            <button class="bottom-bar-item" x-show="isSuperAdmin" :class="{ 'active': currentPage === 'users' }" @click="navigate('users')">
+                <i class="bi bi-person-badge"></i>
+                <small x-text="t('Users')"></small>
+            </button>
+            <button class="bottom-bar-item" @click="logout()">
+                <i class="bi bi-box-arrow-right"></i>
+                <small x-text="t('Logout')"></small>
+            </button>
+        </div>
+    </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/src/main.js"></script>

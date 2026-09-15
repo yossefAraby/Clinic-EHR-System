@@ -75,3 +75,50 @@
 [x-cloak] {
     display: none !important;
 }
+
+/* Mobile bottom bar */
+.mobile-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #dee2e6;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+    z-index: 1040;
+    height: 60px;
+}
+
+.bottom-bar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: #6c757d;
+    padding: 4px 8px;
+    font-size: 0.65rem;
+    gap: 2px;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-bar-item i {
+    font-size: 1.25rem;
+}
+
+.bottom-bar-item.active {
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+.bottom-bar-item:active {
+    opacity: 0.7;
+}
+
+@media (max-width: 991.98px) {
+    .container {
+        padding-bottom: 70px;
+    }
+}
