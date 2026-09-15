@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthCare Clinic</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+</head>
+<body class="bg-light" x-data="app()" x-init="init()">
+
+    <div class="page-loader" x-show="loading" x-cloak>
+        <div class="spinner"></div>
+    </div>
+
+    <div x-show="!loading" x-cloak>
+
+        {{-- NAVBAR --}}
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4" x-show="isLoggedIn">
+            <div class="container">
+                <span class="navbar-brand" @click="navigate('dashboard')" style="cursor:pointer">
+                    <i class="bi bi-heart-pulse-fill me-2"></i><span x-text="t('HealthCare Clinic')"></span>
+                </span>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        <li class="nav-item">
+                            <span class="nav-link" :class="{ 'active fw-semibold': currentPage === 'dashboard' }" @click="navigate('dashboard')" style="cursor:pointer">
+                                <i class="bi bi-speedometer2 me-1"></i><span x-text="t('Dashboard')"></span>
+                            </span>
+                        </li>
+                        <li class="nav-item" x-show="isSuperAdmin">
+                            <span class="nav-link" :class="{ 'active fw-semibold': currentPage === 'users' }" @click="navigate('users')" style="cursor:pointer">
+                                <i class="bi bi-person-badge me-1"></i><span x-text="t('Users')"></span>
+                            </span>
+                        </li>
+                        <li class="nav-item" x-show="isSuperAdmin">
+                            <span class="nav-link" :class="{ 'active fw-semibold': currentPage === 'prices' }" @click="navigate('prices')" style="cursor:pointer">
+                                <i class="bi bi-currency-dollar me-1"></i><span x-text="t('Prices')"></span>
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <span class="nav-link" :class="{ 'active fw-semibold': currentPage === 'patients' }" @click="navigate('patients')" style="cursor:pointer">
+                                <i class="bi bi-people me-1"></i><span x-text="t('Patients')"></span>
+                            </span>
+                        </li>
+                        <li class="nav-item ms-3 dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle fs-5"></i>
+                                <span x-text="profile?.name || user?.email || 'User'"></span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <span class="dropdown-item-text text-muted small" x-text="user?.email"></span>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item text-danger" @click="logout()">
+                                        <i class="bi bi-box-arrow-right me-2"></i><span x-text="t('Logout')"></span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item ms-2">
+                            <button class="btn btn-sm btn-outline-light fw-semibold" @click="toggleLocale()">
+                                <i class="bi bi-translate me-1"></i><span x-text="localeLabel"></span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+
+            {{-- LOGIN PAGE --}}
+            <div x-show="currentPage === 'login'" x-cloak>
+                <div class="min-h-screen flex flex-column sm:justify-center align-items-center pt-6 sm:pt-0 bg-gray-100">
+                    <div>
+                        <a href="#" @click.prevent="navigate('dashboard')" x-cloak>
+                            <i class="bi bi-heart-pulse-fill text-muted" style="font-size:3.5rem"></i>
+                        </a>
+                    </div>
+                    <div class="w-100 px-6 py-4 mt-6 bg-white shadow-sm overflow-hidden sm:rounded-lg">
+                        <form @submit.prevent="handleLogin()">
+                            <div class="mb-3">
+                                <label class="form-label" x-text="t('Email')"></label>
+                                <input id="email" type="email" class="form-control" x-model="loginForm.email" required autofocus autocomplete="username">
+                            </div>
+                            <div class="mt-4 mb-3">
+                                <label class="form-label" x-text="t('Password')"></label>
+                                <input id="password" type="password" class="form-control" x-model="loginForm.password" required autocomplete="current-password">
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-check form-check-inline">
+                                    <input type="checkbox" class="form-check-input" name="remember">
+                                    <span class="ms-2 small text-muted" x-text="t('Remember me')"></span>
+                                </label>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between mt-4">
+                                <a href="#" class="text-decoration-none small text-muted" x-text="t('Forgot your password?')"></a>
+                                <button type="submit" class="btn btn-primary" :disabled="loginLoading">
+                                    <span x-show="loginLoading" class="spinner-border spinner-border-sm me-1"></span>
+                                    <span x-text="t('Log in')"></span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {{-- DASHBOARD PAGE --}}
+            <div x-show="currentPage === 'dashboard'" x-cloak>
+                {{-- Welcome Banner --}}
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div>
+                        <h2 class="fw-bold text-secondary mb-0">
+                            <i class="bi bi-speedometer2 me-2 text-primary"></i><span x-text="t('Dashboard')"></span>
+                        </h2>
+                        <small class="text-muted"><span x-text="t('Welcome back,')"></span> <strong x-text="profile?.name"></strong></small>
+                    </div>
+                    <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i><span x-text="currentDate"></span></span>
+                </div>
+
+                {{-- Stats Cards --}}
+                <div class="row g-4 mb-4">
+
+                    {{-- Total Patients --}}
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body d-flex align-items-center gap-3 p-4">
+                                <div class="bg-primary bg-opacity-10 rounded-3 p-3 flex-shrink-0">
+                                    <i class="bi bi-people-fill fs-2 text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="fs-2 fw-bold text-dark" x-text="stats.total"></div>
+                                    <div class="text-muted small" x-text="t('Total Patients')"></div>
+                                    <span class="text-primary small" @click="navigate('patients')" style="cursor:pointer">
+                                        <span x-text="t('Manage')"></span> <i class="bi bi-arrow-right"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Completed --}}
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body d-flex align-items-center gap-3 p-4">
+                                <div class="bg-success bg-opacity-10 rounded-3 p-3 flex-shrink-0">
+                                    <i class="bi bi-check-circle-fill fs-2 text-success"></i>
+                                </div>
+                                <div>
+                                    <div class="fs-2 fw-bold text-dark" x-text="stats.completed"></div>
+                                    <div class="text-muted small" x-text="t('Completed')"></div>
+                                    <span class="text-success small" @click="navigate('patients')" style="cursor:pointer">
+                                        <span x-text="t('View')"></span> <i class="bi bi-arrow-right"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Pending --}}
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body d-flex align-items-center gap-3 p-4">
+                                <div class="bg-danger bg-opacity-10 rounded-3 p-3 flex-shrink-0">
+                                    <i class="bi bi-exclamation-circle-fill fs-2 text-danger"></i>
+                                </div>
+                                <div>
+                                    <div class="fs-2 fw-bold text-danger" x-text="stats.pending"></div>
+                                    <div class="text-muted small" x-text="t('Pending')"></div>
+                                    <span class="text-danger small" @click="navigate('patients')" style="cursor:pointer">
+                                        <span x-text="t('View')"></span> <i class="bi bi-arrow-right"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Dekhila --}}
+                    <div class="col-md-3" x-show="isSuperAdmin || profile?.section === 'dekhila'">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body d-flex align-items-center gap-3 p-4">
+                                <div class="bg-info bg-opacity-10 rounded-3 p-3 flex-shrink-0">
+                                    <i class="bi bi-building fs-2 text-info"></i>
+                                </div>
+                                <div>
+                                    <div class="fs-2 fw-bold text-dark" x-text="stats.dekhila"></div>
+                                    <div class="text-muted small" x-text="t('Dekhila')"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Agamy --}}
+                    <div class="col-md-3" x-show="isSuperAdmin || profile?.section === 'agamy'">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body d-flex align-items-center gap-3 p-4">
+                                <div class="bg-warning bg-opacity-10 rounded-3 p-3 flex-shrink-0">
+                                    <i class="bi bi-building fs-2 text-warning"></i>
+                                </div>
+                                <div>
+                                    <div class="fs-2 fw-bold text-dark" x-text="stats.agamy"></div>
+                                    <div class="text-muted small" x-text="t('Agamy')"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Charity --}}
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body d-flex align-items-center gap-3 p-4">
+                                <div class="bg-success bg-opacity-10 rounded-3 p-3 flex-shrink-0">
+                                    <i class="bi bi-heart-fill fs-2 text-success"></i>
+                                </div>
+                                <div>
+                                    <div class="fs-2 fw-bold text-dark" x-text="stats.charity"></div>
+                                    <div class="text-muted small" x-text="t('Charity')"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Country --}}
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body d-flex align-items-center gap-3 p-4">
+                                <div class="bg-primary bg-opacity-10 rounded-3 p-3 flex-shrink-0">
+                                    <i class="bi bi-flag-fill fs-2 text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="fs-2 fw-bold text-dark" x-text="stats.country"></div>
+                                    <div class="text-muted small" x-text="t('Country')"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                {{-- Recent Patients --}}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2 text-primary"></i><span x-text="t('Recent Patients')"></span></h5>
+                        <a href="#" class="btn btn-sm btn-outline-primary" @click="navigate('patients')"><span x-text="t('View All')"></span></a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light text-muted">
+                                    <tr>
+                                        <th class="ps-4 py-3" x-text="t('Patient')"></th>
+                                        <th class="py-3" x-text="t('Problem')"></th>
+                                        <th class="py-3" x-text="t('Status')"></th>
+                                        <th class="py-3" x-text="t('Visit Date')"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="patient in recentPatients" :key="patient.id">
+                                        <tr>
+                                            <td class="ps-4">
+                                                <a href="#" class="fw-semibold text-dark text-decoration-none" @click="showPatient(patient)" x-text="patient.name"></a>
+                                            </td>
+                                            <td class="text-muted" x-text="patient.problem ? (patient.problem.length > 60 ? patient.problem.substring(0,60)+'…' : patient.problem) : '—'"></td>
+                                            <td>
+                                                <span class="badge" :class="patient.is_completed ? 'bg-success' : 'bg-secondary'">
+                                                    <span x-text="patient.is_completed ? t('Completed') : t('Pending')"></span>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <template x-if="patient.visit_date">
+                                                    <span class="badge bg-light text-dark border" x-text="formatDate(patient.visit_date)"></span>
+                                                </template>
+                                                <template x-if="!patient.visit_date">
+                                                    <span class="text-muted small">—</span>
+                                                </template>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="recentPatients.length === 0">
+                                        <td colspan="4" class="text-center py-4 text-muted" x-text="t('No patients recorded yet.')"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PATIENTS PAGE --}}
+            <div x-show="currentPage === 'patients'" x-cloak>
+                <div class="row mb-4 align-items-center">
+                    <div class="col-md-6">
+                        <h2 class="text-secondary fw-bold mb-0">
+                            <i class="bi bi-people-fill me-2 text-primary"></i><span x-text="t('Patients Management')"></span>
+                        </h2>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-primary shadow-sm" @click="currentPage = 'patient-form'; editingPatient = null">
+                            <i class="bi bi-person-plus-fill me-1"></i> <span x-text="t('Add New Patient')"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <form @submit.prevent="handleFilter()" class="mb-4">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small mb-1" x-text="t('Filter By')"></label>
+                            <select class="form-select form-select-sm shadow-sm" x-model="patientFilters.filter_by">
+                                <option value="name" x-text="t('Patient Name')"></option>
+                                <option value="national_id" x-text="t('National ID')"></option>
+                                <option value="mobile" x-text="t('Mobile No.')"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small mb-1" x-text="t('Search')"></label>
+                            <input type="text" class="form-control form-control-sm shadow-sm" x-model="patientFilters.search" :placeholder="t('Search by patient name...')">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small mb-1" x-text="t('Status')"></label>
+                            <select class="form-select form-select-sm shadow-sm" x-model="patientFilters.is_completed">
+                                <option value="">All</option>
+                                <option value="false" x-text="t('Pending')"></option>
+                                <option value="true" x-text="t('Completed')"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small mb-1"><i class="bi bi-calendar-event me-1"></i><span x-text="t('Registered From')"></span></label>
+                            <input type="date" class="form-control form-control-sm shadow-sm" x-model="patientFilters.date_from">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label text-muted small mb-1"><i class="bi bi-calendar-event-fill me-1"></i><span x-text="t('Registered To')"></span></label>
+                            <input type="date" class="form-control form-control-sm shadow-sm" x-model="patientFilters.date_to">
+                        </div>
+                        <div class="col-md-1 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm w-100 shadow-sm"><i class="bi bi-search"></i></button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm shadow-sm" @click="resetFilters()"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                        <div class="col-md-4" x-show="isSuperAdmin">
+                            <label class="form-label text-muted small mb-1" x-text="t('Follower')"></label>
+                            <select class="form-select form-select-sm shadow-sm" x-model="patientFilters.follower">
+                                <option value="" x-text="t('-- All Followers --')"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" x-show="isSuperAdmin">
+                            <label class="form-label text-muted small mb-1" x-text="t('Section')"></label>
+                            <select class="form-select form-select-sm shadow-sm" x-model="patientFilters.section">
+                                <option value="" x-text="t('-- All Sections --')"></option>
+                                <option value="agamy" x-text="t('Agamy')"></option>
+                                <option value="dekhila" x-text="t('Dekhila')"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" x-show="isSuperAdmin">
+                            <label class="form-label text-muted small mb-1" x-text="t('Source of Money')"></label>
+                            <select class="form-select form-select-sm shadow-sm" x-model="patientFilters.source_of_money">
+                                <option value="" x-text="t('-- All Sources --')"></option>
+                                <option value="charity" x-text="t('Charity')"></option>
+                                <option value="country" x-text="t('Country')"></option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light border-bottom text-muted">
+                                    <tr>
+                                        <th class="ps-4 py-3" x-text="t('Patient Name')"></th>
+                                        <th class="py-3" x-text="t('National ID')"></th>
+                                        <th class="py-3" x-text="t('Mobile No.')"></th>
+                                        <th class="py-3" x-text="t('Governorate')"></th>
+                                        <th class="py-3" x-text="t('Status')"></th>
+                                        <th class="py-3" x-text="t('Follower')"></th>
+                                        <th class="py-3" x-text="t('Source')"></th>
+                                        <th class="py-3" x-text="t('Section')"></th>
+                                        <th class="py-3" x-text="t('Registered Date')"></th>
+                                        <th class="text-end pe-4 py-3" x-text="t('Actions')"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="patient in patients" :key="patient.id">
+                                        <tr>
+                                            <td class="ps-4">
+                                                <span class="fw-bold text-dark d-block" x-text="patient.name"></span>
+                                            </td>
+                                            <td><code x-text="patient.national_id"></code></td>
+                                            <td>
+                                                <template x-if="patient.mobile">
+                                                    <span><i class="bi bi-telephone text-muted me-1"></i><span x-text="patient.mobile"></span></span>
+                                                </template>
+                                                <template x-if="!patient.mobile">
+                                                    <span class="text-muted"><em x-text="t('None')"></em></span>
+                                                </template>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-light text-dark border px-2 py-1">
+                                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i><span x-text="patient.governorate || 'N/A'"></span>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm px-2 py-1" :class="patient.is_completed ? 'btn-success' : 'btn-outline-secondary'" @click="toggleStatus(patient)">
+                                                    <template x-if="patient.is_completed">
+                                                        <span><i class="bi bi-check-circle-fill me-1"></i><span x-text="t('Completed')"></span></span>
+                                                    </template>
+                                                    <template x-if="!patient.is_completed">
+                                                        <span><i class="bi bi-circle me-1"></i><span x-text="t('Pending')"></span></span>
+                                                    </template>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <span class="text-secondary fs-7"><i class="bi bi-person-badge me-1"></i><span x-text="followerLabel(patient.follower)"></span></span>
+                                            </td>
+                                            <td>
+                                                <span class="text-secondary fs-7"><i class="bi bi-cash-coin me-1"></i><span x-text="patient.source_of_money ? t(patient.source_of_money === 'charity' ? 'Charity' : 'Country') : '—'"></span></span>
+                                            </td>
+                                            <td>
+                                                <span class="text-secondary fs-7"><i class="bi bi-building me-1"></i><span x-text="patient.section ? t(patient.section === 'agamy' ? 'Agamy' : 'Dekhila') : '—'"></span></span>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted small" x-text="new Date(patient.created_at).toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})"></span>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-outline-secondary" @click="showPatient(patient)" title="View">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-primary" @click="editPatient(patient)" title="Edit">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" @click="removePatient(patient)" title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="patientsLoading">
+                                        <td colspan="10" class="text-center py-5">
+                                            <div class="spinner-border text-primary"></div>
+                                        </td>
+                                    </tr>
+                                    <tr x-show="!patientsLoading && patients.length === 0">
+                                        <td colspan="10" class="text-center py-5 text-muted">
+                                            <i class="bi bi-folder-x fs-1 text-secondary d-block mb-2"></i>
+                                            <span class="fw-semibold" x-text="t('No patients recorded yet.')"></span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PRICES PAGE --}}
+            <div x-show="currentPage === 'prices'" x-cloak>
+                <div class="row mb-4 align-items-center">
+                    <div class="col">
+                        <h2 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-currency-dollar me-2 text-primary"></i><span x-text="t('Prices')"></span>
+                        </h2>
+                        <p class="text-muted mb-0 mt-1" x-text="t('Financial summary across all patients')"></p>
+                    </div>
+                    <div class="col-auto">
+                        <div class="card border-0 bg-primary text-white shadow-sm px-4 py-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-cash-stack fs-2"></i>
+                                <div>
+                                    <div class="small opacity-75" x-text="t('Grand Total')"></div>
+                                    <div class="fs-4 fw-bold"><span x-text="formatMoney(priceStats?.grandTotal)"></span> <span x-text="t('EGP')"></span></div>
+                                    <div class="small opacity-75"><span x-text="priceStats?.totalPatients || 0"></span> <span x-text="t('patients')"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3 shadow-sm border p-4 mb-4">
+                    <h5 class="fw-semibold text-secondary mb-4 pb-2 border-bottom">
+                        <i class="bi bi-building me-2 text-primary"></i><span x-text="t('By Section')"></span>
+                    </h5>
+                    <div class="row g-4">
+                        <template x-for="(data, key) in (priceStats?.sectionTotals || {})" :key="key">
+                            <div class="col-md-6">
+                                <div class="card h-100 shadow-sm border-0" :style="'border-top: 4px solid var(--bs-' + (sectionColors[key] || 'primary') + ') !important;'">
+                                    <div class="card-header border-0 d-flex align-items-center gap-3 py-3" :class="'bg-' + (sectionColors[key] || 'primary') + ' bg-opacity-10'">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0" :class="'bg-' + (sectionColors[key] || 'primary')" style="width:44px;height:44px;">
+                                            <i class="bi fs-5" :class="sectionIcons[key] || 'bi-building'"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold fs-5 lh-1" x-text="t(data.label)"></div>
+                                            <div class="text-muted small mt-1"><span x-text="data.count"></span> <span x-text="t('patients')"></span></div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body px-4 py-3">
+                                        <div class="text-muted small mb-1" x-text="t('Total Revenue')"></div>
+                                        <div class="fw-bold display-6 lh-1" :class="'text-' + (sectionColors[key] || 'primary')">
+                                            <span x-text="formatMoney(data.total)"></span>
+                                            <span class="fs-6 fw-normal text-muted ms-1" x-text="t('EGP')"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3 shadow-sm border p-4 mb-4">
+                    <h5 class="fw-semibold text-secondary mb-4 pb-2 border-bottom">
+                        <i class="bi bi-wallet2 me-2 text-primary"></i><span x-text="t('By Source of Money')"></span>
+                    </h5>
+                    <div class="row g-4">
+                        <template x-for="(data, key) in (priceStats?.sourceTotals || {})" :key="key">
+                            <div class="col-md-6">
+                                <div class="card h-100 shadow-sm border-0" :style="'border-top: 4px solid var(--bs-' + (sourceColors[key] || 'secondary') + ') !important;'">
+                                    <div class="card-header border-0 d-flex align-items-center gap-3 py-3" :class="'bg-' + (sourceColors[key] || 'secondary') + ' bg-opacity-10'">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0" :class="'bg-' + (sourceColors[key] || 'secondary')" style="width:44px;height:44px;">
+                                            <i class="bi fs-5" :class="sourceIcons[key] || 'bi-cash-coin'"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold fs-5 lh-1" x-text="t(data.label)"></div>
+                                            <div class="text-muted small mt-1"><span x-text="data.count"></span> <span x-text="t('patients')"></span></div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body px-4 py-3">
+                                        <div class="text-muted small mb-1" x-text="t('Total Revenue')"></div>
+                                        <div class="fw-bold display-6 lh-1" :class="'text-' + (sourceColors[key] || 'secondary')">
+                                            <span x-text="formatMoney(data.total)"></span>
+                                            <span class="fs-6 fw-normal text-muted ms-1" x-text="t('EGP')"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            {{-- USERS PAGE --}}
+            <div x-show="currentPage === 'users'" x-cloak>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h2 class="text-secondary fw-bold"><i class="bi bi-people-fill me-2 text-primary"></i><span x-text="t('Users Management')"></span></h2>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-success" @click="currentPage = 'user-form'">
+                            <i class="bi bi-person-plus-fill me-1"></i> <span x-text="t('Create New User')"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-primary text-white">
+                                    <tr>
+                                        <th class="ps-4" x-text="t('Name')"></th>
+                                        <th x-text="t('Email')"></th>
+                                        <th x-text="t('Role')"></th>
+                                        <th x-text="t('Section')"></th>
+                                        <th class="text-end pe-4" x-text="t('Actions')"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="u in users" :key="u.id">
+                                        <tr>
+                                            <td class="ps-4 fw-semibold" x-text="u.name"></td>
+                                            <td x-text="u.email"></td>
+                                            <td>
+                                                <span class="badge rounded-pill px-2" :class="u.is_admin ? 'bg-danger' : 'bg-secondary'">
+                                                    <span x-text="u.is_admin ? t('Admin') : t('Staff')"></span>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <template x-if="u.section">
+                                                    <span x-text="t(u.section === 'agamy' ? 'Agamy' : 'Dekhila')"></span>
+                                                </template>
+                                                <template x-if="!u.section">
+                                                    <span>—</span>
+                                                </template>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-outline-primary" @click="editUser(u)">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" @click="removeUser(u)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="users.length === 0">
+                                        <td colspan="5" class="text-center py-4 text-muted" x-text="t('No users found.')"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PATIENT PROFILE PAGE --}}
+            <div x-show="currentPage === 'patient-profile'" x-cloak>
+                <div class="row mb-4 align-items-center">
+                    <div class="col-md-6">
+                        <a href="#" class="btn btn-link text-decoration-none p-0" @click="navigate('patients')">
+                            <i class="bi bi-arrow-left"></i> <span x-text="t('Back to Directory')"></span>
+                        </a>
+                        <h2 class="text-secondary fw-bold mb-0 mt-2"><span x-text="t('Patient Profile')"></span></h2>
+                    </div>
+                    <div class="col-md-6 text-end mt-2 mt-md-0">
+                        <button class="btn btn-outline-primary" @click="editPatient(selectedPatient)">
+                            <i class="bi bi-pencil-square me-1"></i> <span x-text="t('Edit Details')"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-4">
+                        <div class="card shadow-sm border-0 mb-4" style="top: 20px; z-index: 1;">
+                            <div class="card-body p-4">
+                                <div class="text-center mb-4">
+                                    <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle mb-3" style="width: 70px; height: 70px;">
+                                        <i class="bi bi-person-bounding-box fs-1"></i>
+                                    </div>
+                                    <h4 class="fw-bold text-dark mb-1" x-text="selectedPatient?.name"></h4>
+                                    <span class="badge bg-light text-secondary border"><span x-text="t('Patient ID:')"></span> #<span x-text="selectedPatient?.id?.slice(0,8)"></span></span>
+                                </div>
+
+                                <hr class="text-muted opacity-25">
+
+                                <div class="vstack gap-3">
+                                    <div>
+                                        <small class="text-muted d-block fw-semibold" x-text="t('National ID')"></small>
+                                        <span class="fw-bold text-dark"><code x-text="selectedPatient?.national_id"></code></span>
+                                    </div>
+
+                                    <div>
+                                        <small class="text-muted d-block fw-semibold" x-text="t('Mobile Number')"></small>
+                                        <template x-if="selectedPatient?.mobile">
+                                            <span class="fw-semibold text-dark"><i class="bi bi-telephone me-1 text-muted"></i><span x-text="selectedPatient?.mobile"></span></span>
+                                        </template>
+                                        <template x-if="!selectedPatient?.mobile">
+                                            <span class="text-muted font-monospace"><em x-text="t('Not Provided')"></em></span>
+                                        </template>
+                                    </div>
+
+                                    <div class="row g-0">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block fw-semibold" x-text="t('Date of Birth')"></small>
+                                            <span class="fw-semibold text-dark" x-text="selectedPatient?.date_of_birth || 'N/A'"></span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block fw-semibold" x-text="t('Marital Status')"></small>
+                                            <span class="fw-semibold text-dark" x-text="selectedPatient?.marital_status ? t(selectedPatient.marital_status.charAt(0).toUpperCase() + selectedPatient.marital_status.slice(1)) : 'N/A'"></span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <small class="text-muted d-block fw-semibold" x-text="t('Dependents / Children')"></small>
+                                        <span class="fw-semibold text-dark"><span x-text="selectedPatient?.children_count ?? '0'"></span> <span x-text="t('child(ren)')"></span></span>
+                                    </div>
+
+                                    <div>
+                                        <small class="text-muted d-block fw-semibold" x-text="t('Governorate')"></small>
+                                        <span class="badge bg-light text-dark border"><i class="bi bi-geo-alt text-danger me-1"></i><span x-text="selectedPatient?.governorate || 'N/A'"></span></span>
+                                    </div>
+
+                                    <div>
+                                        <small class="text-muted d-block fw-semibold" x-text="t('Home Address')"></small>
+                                        <p class="mb-0 text-secondary bg-light p-2 rounded border-start border-primary border-3" style="font-size: 0.85rem;">
+                                            <span x-text="selectedPatient?.address || t('No physical address listed.')"></span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <hr class="text-muted opacity-25">
+
+                                <div class="bg-light p-2 rounded text-center">
+                                    <small class="text-muted"><span x-text="t('Registered by:')"></span> <strong x-text="selectedPatient?.user_name || 'System'"></strong></small>
+                                </div>
+
+                                <template x-if="selectedPatient?.follower || selectedPatient?.price">
+                                    <div class="vstack gap-2 mt-2">
+                                        <template x-if="selectedPatient?.follower">
+                                            <div>
+                                                <small class="text-muted d-block fw-semibold" x-text="t('Follower')"></small>
+                                                <span class="fw-semibold text-dark" dir="rtl">
+                                                    <i class="bi bi-person-check-fill text-info me-1"></i><span x-text="followerLabel(selectedPatient?.follower)"></span>
+                                                </span>
+                                            </div>
+                                        </template>
+                                        <template x-if="selectedPatient?.price">
+                                            <div>
+                                                <small class="text-muted d-block fw-semibold" x-text="t('Price')"></small>
+                                                <span class="fw-semibold text-dark">
+                                                    <i class="bi bi-cash-stack text-success me-1"></i><span x-text="formatMoney(selectedPatient?.price)"></span> EGP
+                                                </span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <h4 class="fw-bold text-dark mb-3">
+                            <i class="bi bi-clipboard2-pulse me-2 text-primary"></i><span x-text="t('Consultation Record')"></span>
+                        </h4>
+
+                        <div class="card shadow-sm border-0 bg-white">
+                            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+                                <h6 class="mb-0 fw-semibold text-dark">
+                                    <i class="bi bi-calendar-event me-2 text-success"></i>
+                                    <template x-if="selectedPatient?.visit_date">
+                                        <span x-text="new Date(selectedPatient.visit_date).toLocaleString(undefined,{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})"></span>
+                                    </template>
+                                    <template x-if="!selectedPatient?.visit_date">
+                                        <span x-text="t('Date Unspecified')"></span>
+                                    </template>
+                                </h6>
+                                <span class="badge px-3 py-2" :class="selectedPatient?.is_completed ? 'bg-success' : 'bg-secondary'">
+                                    <template x-if="selectedPatient?.is_completed">
+                                        <i class="bi bi-check-circle-fill me-1"></i><span x-text="t('Completed')"></span>
+                                    </template>
+                                    <template x-if="!selectedPatient?.is_completed">
+                                        <i class="bi bi-hourglass-split me-1"></i><span x-text="t('Pending')"></span>
+                                    </template>
+                                </span>
+                            </div>
+
+                            <div class="card-body p-4 vstack gap-4">
+                                <div>
+                                    <h6 class="text-danger fw-bold mb-2">
+                                        <i class="bi bi-exclamation-circle-fill me-1"></i><span x-text="t('Presented Symptoms / Problem')"></span>
+                                    </h6>
+                                    <div class="bg-light p-3 rounded border-start border-danger border-3 text-secondary" style="white-space: pre-line; min-height: 60px;">
+                                        <span x-text="selectedPatient?.problem || '—'"></span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h6 class="text-success fw-bold mb-2">
+                                        <i class="bi bi-prescription2 me-1"></i><span x-text="t('Diagnosis & Treatment Plan')"></span>
+                                    </h6>
+                                    <div class="bg-light p-3 rounded border-start border-success border-3 text-secondary" style="white-space: pre-line; min-height: 60px;">
+                                        <span x-text="selectedPatient?.solution || '—'"></span>
+                                    </div>
+                                </div>
+
+                                <template x-if="(selectedPatient?.notes || []).filter(n => n).length > 0">
+                                    <div>
+                                        <h6 class="text-secondary fw-bold mb-2">
+                                            <i class="bi bi-sticky me-1"></i><span x-text="t('Internal Clinic Notes')"></span>
+                                        </h6>
+                                        <div class="vstack gap-2">
+                                            <template x-for="note in (selectedPatient?.notes || []).filter(n => n)" :key="note">
+                                                <div class="bg-light p-3 rounded border-start border-secondary border-3 text-secondary" style="white-space: pre-line;">
+                                                    <em x-text="note"></em>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PATIENT FORM PAGE --}}
+            <div x-show="currentPage === 'patient-form'" x-cloak>
+                <div class="row justify-content-center">
+                    <div class="col-lg-8 col-md-10">
+
+                        <a href="#" class="btn btn-link text-decoration-none mb-3 p-0" @click="navigate('patients')">
+                            <i class="bi bi-arrow-left"></i> <span x-text="editingPatient ? t('Cancel and Return to Directory') : t('Back to Patients Directory')"></span>
+                        </a>
+
+                        <div class="card shadow border-0 mb-5">
+                            <div class="card-header bg-primary text-white py-3">
+                                <h5 class="card-title mb-0">
+                                    <template x-if="editingPatient">
+                                        <span>
+                                            <i class="bi bi-pencil-square me-2"></i>
+                                            <span x-text="t('Modify Patient File: :name', {name: editingPatient.name})"></span>
+                                        </span>
+                                    </template>
+                                    <template x-if="!editingPatient">
+                                        <span>
+                                            <i class="bi bi-person-plus-fill me-2"></i><span x-text="t('Patient Intake Registry')"></span>
+                                        </span>
+                                    </template>
+                                </h5>
+                            </div>
+
+                            <div class="card-body p-4 bg-white">
+                                <form @submit.prevent="submitPatientForm()">
+
+                                    <div class="mb-4">
+                                        <h6 class="text-primary border-bottom pb-2 fw-bold">
+                                            <i class="bi bi-person-vcard me-2"></i><span x-text="t('1. Personal Identification')"></span>
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="pf-name" class="form-label fw-semibold"><span x-text="t('Patient Name')"></span> <span class="text-danger">*</span></label>
+                                                <input type="text" id="pf-name" class="form-control" x-model="patientForm.name" :placeholder="t('First & Last Name')" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="pf-nid" class="form-label fw-semibold"><span x-text="t('National ID')"></span> <span class="text-danger">*</span></label>
+                                                <input type="text" id="pf-nid" maxlength="14" class="form-control" x-model="patientForm.national_id" :placeholder="t('14-digit National ID')" required>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <h6 class="text-primary border-bottom pb-2 fw-bold">
+                                            <i class="bi bi-telephone-inbound me-2"></i><span x-text="t('2. Demographics & Contact Info')"></span>
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold" x-text="t('Mobile Phone')"></label>
+                                                <input type="text" class="form-control" x-model="patientForm.mobile" placeholder="e.g., +2010...">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold" x-text="t('Date of Birth')"></label>
+                                                <input type="date" class="form-control" x-model="patientForm.date_of_birth">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold" x-text="t('Marital Status')"></label>
+                                                <select class="form-select" x-model="patientForm.marital_status">
+                                                    <option value="" x-text="t('-- Select --')"></option>
+                                                    <option value="single" x-text="t('Single')"></option>
+                                                    <option value="married" x-text="t('Married')"></option>
+                                                    <option value="divorced" x-text="t('Divorced')"></option>
+                                                    <option value="widowed" x-text="t('Widowed')"></option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold" x-text="t('Number of Children')"></label>
+                                                <input type="number" min="0" class="form-control" x-model="patientForm.children_count">
+                                            </div>
+                                            <div class="col-md-8">
+                                                <label class="form-label fw-semibold" x-text="t('Governorate')"></label>
+                                                <select class="form-select" x-model="patientForm.governorate" dir="rtl">
+                                                    <option value="" x-text="t('-- Select Governorate --')"></option>
+                                                    <template x-for="gov in governorates" :key="gov">
+                                                        <option :value="gov" x-text="gov"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <h6 class="text-primary border-bottom pb-2 fw-bold">
+                                            <i class="bi bi-geo-alt me-2"></i><span x-text="t('3. Full Residential Address')"></span>
+                                        </h6>
+                                        <div class="mb-3">
+                                            <textarea rows="3" class="form-control" x-model="patientForm.address" :placeholder="t('Street name, building number, apartment, landmarks...')"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <h6 class="text-primary border-bottom pb-2 fw-bold">
+                                            <i class="bi bi-clipboard2-pulse me-2"></i><span x-text="t('4. Consultation / Visit Data')"></span>
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold text-danger">
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i><span x-text="t('Presented Symptoms / Problem')"></span>
+                                                </label>
+                                                <textarea rows="3" class="form-control" x-model="patientForm.problem" :placeholder="t('Describe the clinical symptoms or complaints...')"></textarea>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold text-success">
+                                                    <i class="bi bi-prescription me-1"></i><span x-text="t('Diagnosis & Treatment Plan')"></span>
+                                                </label>
+                                                <textarea rows="3" class="form-control" x-model="patientForm.solution" :placeholder="t('Medical prescriptions, lab workups, treatment plan...')"></textarea>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label fw-semibold">
+                                                    <i class="bi bi-calendar-check-fill text-primary me-1"></i><span x-text="t('Visit Date & Time')"></span>
+                                                </label>
+                                                <input type="datetime-local" class="form-control" x-model="patientForm.visit_date">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold">
+                                                    <i class="bi bi-currency-dollar text-success me-1"></i><span x-text="t('Price (EGP)')"></span>
+                                                </label>
+                                                <input type="number" min="0" step="0.01" class="form-control" x-model="patientForm.price" placeholder="0.00">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-semibold">
+                                                    <i class="bi bi-person-check-fill text-info me-1"></i><span x-text="t('Follower')"></span>
+                                                </label>
+                                                <select class="form-select" x-model="patientForm.follower" dir="rtl">
+                                                    <option value="">-- اختر المتابع --</option>
+                                                    <template x-for="(label, key) in followerOptions" :key="key">
+                                                        <option :value="key" x-text="label"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold">
+                                                    <i class="bi bi-building me-1"></i><span x-text="t('Section')"></span>
+                                                </label>
+                                                <template x-if="!isSuperAdmin && profile?.section">
+                                                    <input type="text" class="form-control bg-light" :value="profile.section === 'agamy' ? t('Agamy') : t('Dekhila')" dir="rtl" disabled>
+                                                </template>
+                                                <template x-if="isSuperAdmin || !profile?.section">
+                                                    <select class="form-select" x-model="patientForm.section" dir="rtl">
+                                                        <option value="">-- اختر المنطقة --</option>
+                                                        <option value="agamy" x-text="t('Agamy')"></option>
+                                                        <option value="dekhila" x-text="t('Dekhila')"></option>
+                                                    </select>
+                                                </template>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold">
+                                                    <i class="bi bi-cash-coin me-1"></i><span x-text="t('Source of Money')"></span>
+                                                </label>
+                                                <select class="form-select" x-model="patientForm.source_of_money" dir="rtl">
+                                                    <option value="">-- اختر المصدر --</option>
+                                                    <option value="charity" x-text="t('Charity')"></option>
+                                                    <option value="country" x-text="t('Country')"></option>
+                                                </select>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold text-secondary">
+                                                    <i class="bi bi-sticky-fill me-1"></i><span x-text="t('Internal Clinic Notes')"></span>
+                                                </label>
+                                                <div id="notes-container" class="vstack gap-2 mb-2">
+                                                    <template x-for="(note, idx) in patientNotes" :key="idx">
+                                                        <div class="notes-item d-flex gap-2">
+                                                            <textarea rows="2" class="form-control" x-model="patientNotes[idx]" :placeholder="t('Add a note...')"></textarea>
+                                                            <button type="button" class="btn btn-outline-danger btn-sm align-self-start" @click="removeNote(idx)" :style="patientNotes.length <= 1 ? 'display:none' : ''">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" @click="addNote()">
+                                                    <i class="bi bi-plus-circle me-1"></i> <span x-text="t('Add Note')"></span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-4">
+
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button type="button" class="btn btn-light border px-4" @click="navigate('patients')">
+                                            <span x-text="editingPatient ? t('Discard Changes') : t('Reset Fields')"></span>
+                                        </button>
+                                        <button type="submit" class="btn btn-success px-5 shadow-sm">
+                                            <i class="bi bi-check2-circle me-1"></i>
+                                            <span x-text="editingPatient ? t('Update Patient File') : t('Register Patient')"></span>
+                                        </button>
+                                    </div>
+
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- USER FORM PAGE --}}
+            <div x-show="currentPage === 'user-form'" x-cloak>
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+
+                        <div class="mb-3">
+                            <a href="#" class="text-decoration-none text-muted" @click="navigate('users')">
+                                <i class="bi bi-arrow-left"></i> <span x-text="t('Back to Users List')"></span>
+                            </a>
+                        </div>
+
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header bg-primary text-white py-3">
+                                <h5 class="card-title mb-0 fw-bold">
+                                    <template x-if="editingUser">
+                                        <span><i class="bi bi-person-gear me-2"></i><span x-text="t('Edit User')"></span> — <span x-text="editingUser.name"></span></span>
+                                    </template>
+                                    <template x-if="!editingUser">
+                                        <span><i class="bi bi-person-plus-fill me-2"></i><span x-text="t('Register New Staff/Admin')"></span></span>
+                                    </template>
+                                </h5>
+                            </div>
+
+                            <div class="card-body p-4">
+                                <form @submit.prevent="submitUserForm()">
+
+                                    <div class="mb-3">
+                                        <label for="uf-name" class="form-label fw-semibold" x-text="t('Full Name')"></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                                            <input type="text" id="uf-name" class="form-control" x-model="userForm.name" placeholder="e.g. Dr. John Doe" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="uf-email" class="form-label fw-semibold" x-text="t('Email Address')"></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                                            <input type="email" id="uf-email" class="form-control" x-model="userForm.email" placeholder="name@clinic.com" :disabled="!!editingUser" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="uf-password" class="form-label fw-semibold">
+                                            <span x-text="editingUser ? t('New Password') : t('Password')"></span>
+                                            <template x-if="editingUser">
+                                                <span class="text-muted fw-normal" x-text="t('(leave blank to keep current)')"></span>
+                                            </template>
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
+                                            <input type="password" id="uf-password" class="form-control" x-model="userForm.password" placeholder="••••••••" :required="!editingUser">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4 pt-2">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" id="is_admin" x-model="userForm.is_admin">
+                                            <label class="form-check-label fw-semibold ms-2" for="is_admin">
+                                                <span x-text="t('Grant Administrator Privileges')"></span>
+                                            </label>
+                                        </div>
+                                        <div class="form-text ms-4 text-muted">
+                                            <span x-text="t('Admins can manage system settings, users, and delete clinic data records.')"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label for="uf-section" class="form-label fw-semibold" x-text="t('Section')"></label>
+                                        <select id="uf-section" class="form-select" x-model="userForm.section">
+                                            <option value="" x-text="t('— None (Super Admin) —')"></option>
+                                            <option value="agamy">العجمي</option>
+                                            <option value="dekhila">الدخيلة</option>
+                                        </select>
+                                        <div class="form-text text-muted" x-text="t('Leave empty if this user is a Super Admin.')"></div>
+                                    </div>
+
+                                    <hr class="text-muted opacity-25">
+
+                                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                                        <button type="button" class="btn btn-light me-md-2" @click="navigate('users')"><span x-text="t('Cancel')"></span></button>
+                                        <button type="submit" class="btn btn-primary px-4">
+                                            <i class="bi bi-save me-1"></i> <span x-text="editingUser ? t('Update User') : t('Save User')"></span>
+                                        </button>
+                                    </div>
+
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
