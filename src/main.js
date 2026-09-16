@@ -84,42 +84,44 @@ function app() {
         alertType: 'success',
         
         async init() {
-            await initI18n();
-            await initSupabase();
-            initCloudinary();
-            
-            const authUser = getCurrentUser();
-            if (authUser) {
-                try {
-                    this.profile = await loadUserProfile();
-                    this.updateAuthState();
-                } catch {
-                    this.updateAuthState();
-                }
-            }
-            
-            window.authStateChanged = async (user) => {
-                if (user) {
+            try {
+                await initI18n();
+                await initSupabase();
+                initCloudinary();
+                
+                const authUser = getCurrentUser();
+                if (authUser) {
                     try {
                         this.profile = await loadUserProfile();
                     } catch {}
-                } else {
-                    this.profile = null;
+                    this.updateAuthState();
                 }
-                this.updateAuthState();
-            };
-            
-            window.localeChanged = () => {
+                
+                window.authStateChanged = async (user) => {
+                    if (user) {
+                        try {
+                            this.profile = await loadUserProfile();
+                        } catch {}
+                    } else {
+                        this.profile = null;
+                    }
+                    this.updateAuthState();
+                };
+                
+                window.localeChanged = () => {
+                    this.localeLabel = t('locale_label');
+                };
+                
                 this.localeLabel = t('locale_label');
-            };
-            
-            this.localeLabel = t('locale_label');
-            
-            if (this.isLoggedIn) {
-                await this.showDashboard();
+                
+                if (this.isLoggedIn) {
+                    await this.showDashboard();
+                }
+            } catch (error) {
+                console.error('Init error:', error);
+            } finally {
+                this.loading = false;
             }
-            
-            this.loading = false;
         },
         
         updateAuthState() {
