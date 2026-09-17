@@ -1,16 +1,29 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
+
+const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    ?? Deno.env.get('SERVICE_ROLE_KEY')
+    ?? '';
+
 const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    serviceRoleKey
 );
 
 Deno.serve(async (req) => {
+    if (req.method === 'OPTIONS') {
+        return json({ ok: true }, 200);
+    }
+
     try {
         const auth = req.headers.get('Authorization') || '';
         const token = auth.replace('Bearer ', '');
 
-        // Verify caller is an authenticated admin user (RLS equivalent guard)
         const { data: { user: caller }, error: authErr } = await supabase.auth.getUser(token);
         if (authErr || !caller) {
             return json({ error: 'Unauthorized' }, 401);
@@ -92,6 +105,9 @@ Deno.serve(async (req) => {
 function json(data, status = 200) {
     return new Response(JSON.stringify(data), {
         status,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            ...CORS_HEADERS,
+        },
     });
 }

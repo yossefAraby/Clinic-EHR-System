@@ -297,7 +297,7 @@ function app() {
                 address: patient.address || '',
                 problem: patient.problem || '',
                 solution: patient.solution || '',
-                visit_date: patient.visit_date ? patient.visit_date.slice(0, 16) : '',
+                visit_date: patient.visit_date ? String(patient.visit_date).slice(0, 10) : '',
                 price: patient.price ?? '',
                 follower: patient.follower || '',
                 section: patient.section || this.profile?.section || '',
@@ -323,10 +323,13 @@ function app() {
             const { createPatient, updatePatient } = await import('./services/patients.js');
             const payload = {
                 ...this.patientForm,
+                visit_date: this.patientForm.visit_date ? String(this.patientForm.visit_date).slice(0, 10) : null,
                 notes: this.patientNotes.map(n => n.trim()).filter(Boolean),
                 is_completed: this.editingPatient?.is_completed ?? false,
-                user_id: this.user.id,
             };
+            if (!this.editingPatient) {
+                payload.user_id = this.user.id;
+            }
             
             try {
                 if (this.editingPatient) {

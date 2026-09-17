@@ -40,7 +40,7 @@ export async function createUser({ email, password, name, is_admin, section }) {
 }
 
 export async function updateUser(id, { name, is_admin, section, password = null }) {
-    return callManageUser('update', { id, name, is_admin, section, password });
+    return callManageUser('update', { id, name, is_admin, section, password: password || null });
 }
 
 export async function deleteUser(id) {

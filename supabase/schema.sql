@@ -62,50 +62,39 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
 
+-- SECURITY DEFINER helper to check admin status without RLS recursion
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.users
+        WHERE id = auth.uid() AND is_admin = TRUE
+    );
+$$;
+
 -- Users policies
 CREATE POLICY "Users can view own profile" ON public.users
     FOR SELECT USING (auth.uid() = id);
 
 CREATE POLICY "Admins can view all users" ON public.users
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.users
-            WHERE id = auth.uid() AND is_admin = TRUE
-        )
-    );
+    FOR SELECT USING (public.is_admin());
 
 CREATE POLICY "Admins can insert users" ON public.users
-    FOR INSERT WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.users
-            WHERE id = auth.uid() AND is_admin = TRUE
-        )
-    );
+    FOR INSERT WITH CHECK (public.is_admin());
 
 CREATE POLICY "Admins can update users" ON public.users
-    FOR UPDATE USING (
-        EXISTS (
-            SELECT 1 FROM public.users
-            WHERE id = auth.uid() AND is_admin = TRUE
-        )
-    );
+    FOR UPDATE USING (public.is_admin());
 
 CREATE POLICY "Admins can delete users" ON public.users
-    FOR DELETE USING (
-        EXISTS (
-            SELECT 1 FROM public.users
-            WHERE id = auth.uid() AND is_admin = TRUE
-        )
-    );
+    FOR DELETE USING (public.is_admin());
 
 -- Patients policies
 CREATE POLICY "Admins can do everything with patients" ON public.patients
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.users
-            WHERE id = auth.uid() AND is_admin = TRUE
-        )
-    );
+    FOR ALL USING (public.is_admin());
 
 CREATE POLICY "Section users can view patients in their section" ON public.patients
     FOR SELECT USING (

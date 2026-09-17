@@ -301,7 +301,7 @@
                         </h2>
                     </div>
                     <div class="col-md-6 text-end">
-                        <button class="btn btn-primary shadow-sm" @click="currentPage = 'patient-form'; editingPatient = null">
+                        <button class="btn btn-primary shadow-sm" @click="openPatientForm()">
                             <i class="bi bi-person-plus-fill me-1"></i> <span x-text="t('Add New Patient')"></span>
                         </button>
                     </div>
@@ -345,6 +345,9 @@
                             <label class="form-label text-muted small mb-1" x-text="t('Follower')"></label>
                             <select class="form-select form-select-sm shadow-sm" x-model="patientFilters.follower">
                                 <option value="" x-text="t('-- All Followers --')"></option>
+                                <template x-for="(label, key) in followerOptions" :key="key">
+                                    <option :value="key" x-text="label"></option>
+                                </template>
                             </select>
                         </div>
                         <div class="col-md-4" x-show="isSuperAdmin">
@@ -550,7 +553,7 @@
                         <h2 class="text-secondary fw-bold"><i class="bi bi-people-fill me-2 text-primary"></i><span x-text="t('Users Management')"></span></h2>
                     </div>
                     <div class="col-md-6 text-end">
-                        <button class="btn btn-success" @click="currentPage = 'user-form'">
+                        <button class="btn btn-success" @click="openUserForm()">
                             <i class="bi bi-person-plus-fill me-1"></i> <span x-text="t('Create New User')"></span>
                         </button>
                     </div>
@@ -724,7 +727,7 @@
                                 <h6 class="mb-0 fw-semibold text-dark">
                                     <i class="bi bi-calendar-event me-2 text-success"></i>
                                     <template x-if="selectedPatient?.visit_date">
-                                        <span x-text="new Date(selectedPatient.visit_date).toLocaleString(undefined,{month:'short',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})"></span>
+                                        <span x-text="formatDate(selectedPatient.visit_date)"></span>
                                     </template>
                                     <template x-if="!selectedPatient?.visit_date">
                                         <span x-text="t('Date Unspecified')"></span>
@@ -891,9 +894,9 @@
                                             </div>
                                             <div class="col-md-5">
                                                 <label class="form-label fw-semibold">
-                                                    <i class="bi bi-calendar-check-fill text-primary me-1"></i><span x-text="t('Visit Date & Time')"></span>
+                                                    <i class="bi bi-calendar-check-fill text-primary me-1"></i><span x-text="t('Visit Date')"></span>
                                                 </label>
-                                                <input type="datetime-local" class="form-control" x-model="patientForm.visit_date">
+                                                <input type="date" class="form-control" x-model="patientForm.visit_date">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label fw-semibold">

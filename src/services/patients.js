@@ -26,8 +26,8 @@ export async function getPatients(filters = {}, isSuperAdmin = false, userSectio
         query = query.eq('is_completed', filters.is_completed);
     }
     
-    if (filters.date_from) query = query.gte('created_at', filters.date_from);
-    if (filters.date_to) query = query.lte('created_at', filters.date_to);
+    if (filters.date_from) query = query.gte('created_at', `${filters.date_from}T00:00:00`);
+    if (filters.date_to) query = query.lte('created_at', `${filters.date_to}T23:59:59.999`);
     
     const { data, error } = await query;
     if (error) throw error;
